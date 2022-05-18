@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart';
 
+import 'src/connectors/result.dart';
+
 final flutterPrinterChannel = const MethodChannel('flutter_pos_printer');
 
 abstract class Printer {
@@ -16,6 +18,7 @@ abstract class Printer {
 //
 abstract class PrinterConnector {
   Future<bool> send(List<int> bytes);
+  Future<PosPrintResult> connect(String host, {int port = 91000, Duration timeout = const Duration(seconds: 5)});
 }
 
 abstract class GenericPrinter extends Printer {

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:flutter_pos_printer/src/connectors/result.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 
 import 'package:flutter_pos_printer/discovery.dart';
@@ -19,9 +20,14 @@ class TcpPrinterConnector implements PrinterConnector {
       : _port = port,
         _timeout = timeout;
 
-  final String _host;
-  final int _port;
+  String _host;
+  int _port;
   late final Duration _timeout;
+
+  late Socket _socket;
+
+  int? get port => _port;
+  String? get host => _host;
 
   static DiscoverResult<TcpPrinterInfo> discoverPrinters() async {
     final List<PrinterDiscovered<TcpPrinterInfo>> result = [];
@@ -49,12 +55,21 @@ class TcpPrinterConnector implements PrinterConnector {
   }
 
   @override
+  Future<PosPrintResult> connect(String host, {int port = 91000, Duration timeout = const Duration(seconds: 5)}) async {
+    _host = host;
+    _port = port;
+    try {
+      _socket = await Socket.connect(host, port, timeout: timeout);
+      return Future<PosPrintResult>.value(PosPrintResult.success);
+    } catch (e) {
+      return Future<PosPrintResult>.value(PosPrintResult.timeout);
+    }
+  }
+
+  @override
   Future<bool> send(List<int> bytes) async {
     try {
-      final _socket = await Socket.connect(_host, _port, timeout: _timeout);
       _socket.add(Uint8List.fromList(bytes));
-      await _socket.flush();
-      _socket.destroy();
       return true;
     } catch (e) {
       return false;

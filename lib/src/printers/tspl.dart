@@ -1,9 +1,11 @@
 import 'dart:core';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_pos_printer/printer.dart';
 import 'package:image/image.dart';
 
+import '../connectors/result.dart';
 import '../utils.dart';
 
 class ImageRaster {
@@ -110,9 +112,8 @@ class Command {
   }
 }
 
-class TsplPrinter extends GenericPrinter {
-  TsplPrinter(
-    PrinterConnector connector, {
+class TsplPrinter {
+  TsplPrinter({
     String unit = "mm",
     String sizeWidth = "35",
     String sizeHeight = "25",
@@ -126,7 +127,7 @@ class TsplPrinter extends GenericPrinter {
     String shiftLeft = "0",
     String shiftTop = "0",
     this.dpi = "200",
-  }) : super(connector) {
+  }) {
     this._unit = unit;
     this._sizeWidth = sizeWidth;
     this._sizeHeight = sizeHeight;
@@ -164,32 +165,49 @@ class TsplPrinter extends GenericPrinter {
   late final String _shiftLeft;
   late final String _shiftTop;
 
+  /// print
+
+  String? _host;
+  int? _port;
+  late Socket _socket;
+
+  int? get port => _port;
+  String? get host => _host;
+
   @override
-  Future<bool> beep() async {
-    return await sendToConnector(() {
-      return [Command.clearCache(), Command.beep(), Command.close()]
-          .join()
-          .codeUnits;
-    });
+  Future<PosPrintResult> connect(String host,
+      {int port = 91000, Duration timeout = const Duration(seconds: 5)}) async {
+    _host = host;
+    _port = port;
+    try {
+      _socket = await Socket.connect(host, port, timeout: timeout);
+      return Future<PosPrintResult>.value(PosPrintResult.success);
+    } catch (e) {
+      return Future<PosPrintResult>.value(PosPrintResult.timeout);
+    }
   }
 
-  @override
-  Future<bool> selfTest() async {
-    return await sendToConnector(() {
-      return [Command.clearCache(), Command.selfTest(), Command.close()]
-          .join()
-          .codeUnits;
-    });
+  void send(List<int> bytes) async {
+    try {
+      _socket.add(Uint8List.fromList(bytes));
+    } catch (e) {
+      print("Error int send $e");
+    }
   }
 
-  @override
-  Future<bool> setIp(String ipAddress) async {
-    return await sendToConnector(() => encodeSetIP(ipAddress));
+  void beep() async {
+    send([Command.clearCache(), Command.beep(), Command.close()]
+        .join()
+        .codeUnits);
   }
 
-  @override
-  Future<bool> image(Image imageI, {int threshold = 150}) async {
+  void selfTest() async {
+    send([Command.clearCache(), Command.selfTest(), Command.close()]
+        .join()
+        .codeUnits);
+  }
 
+  void image(Image imageI, {int threshold = 150}) async {
     final rasterizeImage = _toRaster(imageI, dpi: int.parse(dpi));
     final converted = toPixel(
         ImageData(width: imageI.width, height: imageI.height),
@@ -199,24 +217,22 @@ class TsplPrinter extends GenericPrinter {
 
     final ms = 1000 + (converted.height * 0.5).toInt();
 
-    return await sendToConnector(() {
-      if (imageI.data.buffer.asUint8List().length > 0) {
-        List<int> buffer = [];
-        buffer += this._config.codeUnits;
-        buffer += Command.clearCache().codeUnits;
-        buffer += Command.imageString('0', '0', converted.width.toString(),
-                converted.height.toString(),
-                mode: '0')
-            .codeUnits;
-        buffer += rasterizeImage.data;
-        buffer += Command.EOL_HEX;
-        buffer += Command.printIt('1', repeat: '1').codeUnits;
-        buffer += Command.close().codeUnits;
-        return buffer;
-      } else {
-        return [];
-      }
-    }, delayMs: ms);
+    if (imageI.data.buffer.asUint8List().length > 0) {
+      List<int> buffer = [];
+      buffer += this._config.codeUnits;
+      buffer += Command.clearCache().codeUnits;
+      buffer += Command.imageString(
+              '0', '0', converted.width.toString(), converted.height.toString(),
+              mode: '0')
+          .codeUnits;
+      buffer += rasterizeImage.data;
+      buffer += Command.EOL_HEX;
+      buffer += Command.printIt('1', repeat: '1').codeUnits;
+      buffer += Command.close().codeUnits;
+      send(buffer);
+    } else {
+      print('no byte data');
+    }
   }
 
   ImageRaster _toRaster(Image imgSrc, {int dpi = 200}) {
@@ -258,8 +274,4 @@ class TsplPrinter extends GenericPrinter {
         height: heightPx.toString());
   }
 
-  @override
-  Future<bool> pulseDrawer() async {
-    return true;
-  }
 }
