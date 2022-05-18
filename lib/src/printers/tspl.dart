@@ -187,6 +187,13 @@ class TsplPrinter {
     }
   }
 
+  void disconnect({int? delayMs}) async {
+    _socket.destroy();
+    if (delayMs != null) {
+      await Future.delayed(Duration(milliseconds: delayMs), () => null);
+    }
+  }
+
   void send(List<int> bytes) async {
     try {
       _socket.add(Uint8List.fromList(bytes));
