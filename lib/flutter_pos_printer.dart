@@ -5,3 +5,4 @@ export './src/printers/escpos.dart';
 export './src/printers/star.dart';
 export './src/printers/tspl.dart';
 export './printer.dart';
+export 'src/connectors/result.dart';
