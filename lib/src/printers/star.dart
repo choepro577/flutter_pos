@@ -4,6 +4,7 @@ import 'package:enum_to_string/enum_to_string.dart';
 import 'package:flutter_pos_printer/discovery.dart';
 import 'package:flutter_pos_printer/printer.dart';
 import 'package:flutter_star_prnt/flutter_star_prnt.dart';
+import 'package:image/image.dart';
 
 enum StarEmulation { StarPRNT, StarLine, StarGraphic }
 
@@ -33,14 +34,14 @@ class StarPrinter extends Printer {
   }
 
   @override
-  Future<bool> image(Uint8List bytes, {int threshold = 150}) async {
+  Future<bool> image(Image imageI, {int threshold = 150}) async {
     if (this._selectedPrinter == null) {
       throw new Exception(
           "No printer available, please connect before sending.");
     }
     final commands = PrintCommands();
     commands.appendBitmapByte(
-        byteData: bytes,
+        byteData: imageI.data.buffer.asUint8List(),
         width: this._width,
         diffusion: true,
         bothScale: true,

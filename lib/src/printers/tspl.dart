@@ -188,11 +188,11 @@ class TsplPrinter extends GenericPrinter {
   }
 
   @override
-  Future<bool> image(Uint8List image, {int threshold = 150}) async {
-    final decodedImage = decodeImage(image)!;
-    final rasterizeImage = _toRaster(decodedImage, dpi: int.parse(dpi));
+  Future<bool> image(Image imageI, {int threshold = 150}) async {
+
+    final rasterizeImage = _toRaster(imageI, dpi: int.parse(dpi));
     final converted = toPixel(
-        ImageData(width: decodedImage.width, height: decodedImage.height),
+        ImageData(width: imageI.width, height: imageI.height),
         paperWidth: int.parse(_sizeWidth),
         dpi: int.parse(dpi),
         isTspl: true);
@@ -200,7 +200,7 @@ class TsplPrinter extends GenericPrinter {
     final ms = 1000 + (converted.height * 0.5).toInt();
 
     return await sendToConnector(() {
-      if (image.length > 0) {
+      if (imageI.data.buffer.asUint8List().length > 0) {
         List<int> buffer = [];
         buffer += this._config.codeUnits;
         buffer += Command.clearCache().codeUnits;

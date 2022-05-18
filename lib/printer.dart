@@ -1,11 +1,12 @@
 import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
+import 'package:image/image.dart';
 
 final flutterPrinterChannel = const MethodChannel('flutter_pos_printer');
 
 abstract class Printer {
-  Future<bool> image(Uint8List image, {int threshold = 150});
+  Future<bool> image(Image imageI, {int threshold = 150});
   Future<bool> beep();
   Future<bool> pulseDrawer();
   Future<bool> setIp(String ipAddress);

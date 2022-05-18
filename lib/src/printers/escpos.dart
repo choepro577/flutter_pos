@@ -22,16 +22,15 @@ class EscPosPrinter extends GenericPrinter {
   }
 
   @override
-  Future<bool> image(Uint8List image, {int threshold = 150}) async {
-    final decodedImage = decodeImage(image)!;
+  Future<bool> image(Image imageI, {int threshold = 150}) async {
 
     final converted = toPixel(
-        ImageData(width: decodedImage.width, height: decodedImage.height),
+        ImageData(width: imageI.width, height: imageI.height),
         paperWidth: width,
         dpi: dpi,
         isTspl: false);
 
-    final resizedImage = copyResize(decodedImage,
+    final resizedImage = copyResize(imageI,
         width: converted.width,
         height: converted.height,
         interpolation: Interpolation.cubic);
